@@ -31,7 +31,8 @@ public interface ProductoDao extends JpaRepository<Producto, Long>{
      * por algun criterio de ordenación, como por ejemplo por el nombre del producto, 
      * por la descripcion, etc.
      */
-
+     
+     /**Para que nos de lista de productos venga ordenada por un criterio concreto*/
      @Query(value = "select p from Producto p left join fetch p.presentacion")
      public List<Producto> findAll(Sort sort);
 
@@ -41,9 +42,9 @@ public interface ProductoDao extends JpaRepository<Producto, Long>{
      countQuery = "select count(p) from Producto p left join p.presentacion")
      public Page<Producto> findAll(Pageable pageable);
 
-     /** El siguiente metodo recupera un producto por su id. Como hemos puesto lazy
+     /** El siguiente metodo recupera un producto por su id con su presentacion. Como hemos puesto lazy
       no nos dará la presentacion, para ello hacemos esto */
       @Query(value = "select p from Producto p left join fetch p.presentacion where p.id = :id")
-      public List<Producto> findById(long id);
+      public Producto findById(long id);
 
 }
