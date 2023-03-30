@@ -41,7 +41,7 @@ public class Producto implements Serializable {
     @Min(value = 0, message = "El precio no puede ser negativo")
     private double precio;
 
-    @Min(value = 0, message = "No queda stock")
+    @Min(value = 0, message = "El stock no puede ser negativo")
     private long stock; 
 
 
