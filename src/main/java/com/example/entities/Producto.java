@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -43,6 +44,9 @@ public class Producto implements Serializable {
 
     @Min(value = 0, message = "El stock no puede ser negativo")
     private long stock; 
+
+    @NotNull
+    private String imagenProducto;
 
 
     @ManyToOne(fetch = FetchType.LAZY,cascade = CascadeType.PERSIST)

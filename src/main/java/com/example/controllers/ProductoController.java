@@ -1,5 +1,6 @@
 package com.example.controllers;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,10 +25,13 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.entities.Producto;
 import com.example.services.ProductoService;
+import com.example.utilities.FileUploadUtil;
 
 import jakarta.validation.Valid;
 
@@ -40,6 +44,9 @@ public class ProductoController {
     //Para inyectar dependencia 
     @Autowired
     private ProductoService productoService;
+
+    @Autowired
+    private FileUploadUtil fileUploadUtil;
 
     /** El siguiente método va a responder a una peticion (request) del tipo:
      * http://localhost:8080/productos?page=1&size=4,
@@ -143,12 +150,23 @@ public class ProductoController {
     //Se anota con postmapping pq va a recibir los datos del formulario. Con post lo que manda
     //va DENTRO. En get va en la CABEZERA.
 
-    @PostMapping
-    @Transactional //spring
-    public ResponseEntity<Map<String, Object>> insert(@Valid @RequestBody Producto producto,
-                                                                 BindingResult result) {
+    // Guardar (Persistir), un producto, con su presentacion en la base de datos
+    // Para probarlo con POSTMAN: Body -> form-data -> producto -> CONTENT TYPE ->
+    // application/json
+    // no se puede dejar el content type en Auto, porque de lo contrario asume
+    // application/octet-stream
+    // y genera una exception MediaTypeNotSupported
 
-        Map<String, Object> resopnseAsMap = new HashMap<>();
+    //En vez de ResquestParam como estamos tratando con un multipart, tenemos que usar @RequestPart
+    
+    @PostMapping( consumes = "multipart/form-data" )
+    @Transactional //spring
+    public ResponseEntity<Map<String, Object>> insert
+    (@Valid @RequestPart(name = "producto") Producto producto,
+    BindingResult result,
+    @RequestPart(name = "file") MultipartFile file) throws IOException {
+
+        Map<String, Object> responseAsMap = new HashMap<>();
         ResponseEntity<Map<String, Object>> responseEntity = null;
 
         /** Primero: Comprobar si hay errores en el producto recibido */
@@ -156,32 +174,42 @@ public class ProductoController {
 
             //Aquí guardamos los errores
             List<String> errorMessages = new ArrayList<>();
-
             //un for mejorado para recorrerlos creamos la coleccion, despues de los puntos estan
             //donde estan (result)y luego .getAllErrors, ahi ya nos pide que a la izq haya ObjectError
             for(ObjectError error : result.getAllErrors()) {
+
                 errorMessages.add(error.getDefaultMessage());
             }
 
-            resopnseAsMap.put("errores", errorMessages);
+            responseAsMap.put("errores", errorMessages);
 
-            responseEntity = new ResponseEntity<Map<String,Object>>(resopnseAsMap, HttpStatus.BAD_REQUEST);
+            responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.BAD_REQUEST);
             //Return para no salir del if y no guardar. Solo devolvemos mensaje error
             return responseEntity; 
 
         }
         //Si no hay errores, entonces se persiste el producto (se guarda mi hermano)
+        //Y PREVIAMENTE comprobamos si nos han enviado una imagen
+        if(!file.isEmpty()) {
+            String fileCode = fileUploadUtil.saveFile(file.getOriginalFilename(), file); //recibe nombre del archivo y su contenido
+            //Hemos lanzado una excepcion para arriba
+            producto.setImagenProducto(fileCode + "-" + file.getOriginalFilename());
+        }
+        
         Producto productoDB = productoService.save(producto);
 
         try {
             if(productoDB != null) {
                 String mensaje = "El producto se ha creado correctamente";
-                resopnseAsMap.put("mensaje", mensaje);
-                resopnseAsMap.put("producto", productoDB);
-                responseEntity = new ResponseEntity<Map<String, Object>>(resopnseAsMap, HttpStatus.CREATED);
+                responseAsMap.put("mensaje", mensaje);
+                responseAsMap.put("producto", productoDB);
+                responseEntity = new ResponseEntity<Map<String, Object>>(responseAsMap, HttpStatus.CREATED);
     
             } else {
                 //No se ha creado el producto
+                String mensaje = "El producto no se ha creado";
+                responseAsMap.put("mensaje", mensaje);
+                responseEntity = new ResponseEntity<Map<String, Object>>(responseAsMap, HttpStatus.NOT_ACCEPTABLE);
             }
             
         } catch (DataAccessException e) {
@@ -189,8 +217,8 @@ public class ProductoController {
                                  + ", y la causa más probable puede ser" 
                                     + e.getMostSpecificCause();
 
-            resopnseAsMap.put("errorGrave", errorGrave);
-            responseEntity = new ResponseEntity<Map<String, Object>>(resopnseAsMap,
+            responseAsMap.put("errorGrave", errorGrave);
+            responseEntity = new ResponseEntity<Map<String, Object>>(responseAsMap,
                                                                  HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
