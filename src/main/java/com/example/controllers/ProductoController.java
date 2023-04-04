@@ -7,12 +7,15 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindingResult;
@@ -30,14 +33,19 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.entities.Producto;
+import com.example.model.FileUploadResponse;
 import com.example.services.ProductoService;
+import com.example.utilities.FileDownloadUtil;
 import com.example.utilities.FileUploadUtil;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 //Anotacion para que nos devuelva datos en formato JSON
 @RestController
 @RequestMapping("/productos")
+//Anotacion para inyectar dependencias por constructor
+@RequiredArgsConstructor
 
 public class ProductoController {
 
@@ -47,6 +55,10 @@ public class ProductoController {
 
     @Autowired
     private FileUploadUtil fileUploadUtil;
+
+    //Para inyectar FileDownloadUtil lo vamos a hacer por constructor para aprender
+    //si algo es final tienes que darle valor ahi mismo o si no por defecto al constructor
+    private final FileDownloadUtil fileDownloadUtil;
 
     /** El siguiente método va a responder a una peticion (request) del tipo:
      * http://localhost:8080/productos?page=1&size=4,
@@ -194,6 +206,18 @@ public class ProductoController {
             String fileCode = fileUploadUtil.saveFile(file.getOriginalFilename(), file); //recibe nombre del archivo y su contenido
             //Hemos lanzado una excepcion para arriba
             producto.setImagenProducto(fileCode + "-" + file.getOriginalFilename());
+
+            //Devolver informacion respecto al file recibido
+            FileUploadResponse fileUploadResponse = FileUploadResponse
+            .builder()
+            .fileName(fileCode + "-" + file.getOriginalFilename())
+            .downloadURI("/productos/downloadFile/" + fileCode + "-" + file.getOriginalFilename())
+            .size(file.getSize())
+            .build();
+
+            responseAsMap.put("info de la imagen", fileUploadResponse);
+
+            //Hay que crear el metodo que responda a la URL para recuperar la imagen del servidor
         }
         
         Producto productoDB = productoService.save(producto);
@@ -313,6 +337,35 @@ public class ProductoController {
         }
 
         return responseEntity;
+
+    }
+
+    /**
+     *  Implementa filedownnload end point API 
+     **/    
+    //Tenemos qie inyectar arriba downloadFile
+    @GetMapping("/downloadFile/{fileCode}") //esto es un ENDPoint
+    public ResponseEntity<?> downloadFile(@PathVariable(name = "fileCode") String fileCode) {
+
+        Resource resource = null;
+
+        try {
+            resource = fileDownloadUtil.getFileAsResource(fileCode);
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
+        }
+
+        if (resource == null) {
+            return new ResponseEntity<>("File not found ", HttpStatus.NOT_FOUND);
+        }
+
+        String contentType = "application/octet-stream";
+        String headerValue = "attachment; filename=\"" + resource.getFilename() + "\"";
+
+        return ResponseEntity.ok()
+        .contentType(MediaType.parseMediaType(contentType)) //MediaType de spring
+        .header(HttpHeaders.CONTENT_DISPOSITION, headerValue)
+        .body(resource);
 
     }
 
