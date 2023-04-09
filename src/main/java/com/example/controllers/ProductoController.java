@@ -17,6 +17,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
@@ -142,9 +143,9 @@ public class ProductoController {
             responseEntity = new ResponseEntity<Map<String, Object>>(responseAsMap, HttpStatus.NOT_FOUND);
         }
            
-        } catch (Exception e) {
-            // TODO: handle exception
-            String errorGrave = "Error grave";
+        } catch (DataAccessException e) {
+        
+            String errorGrave = "Error grave, y la causa mas probable puede ser: " + e.getMostSpecificCause();
             responseAsMap.put("error", errorGrave);
             responseEntity = new ResponseEntity<Map<String, Object>>(responseAsMap, HttpStatus.INTERNAL_SERVER_ERROR);
 
@@ -171,12 +172,14 @@ public class ProductoController {
 
     //En vez de ResquestParam como estamos tratando con un multipart, tenemos que usar @RequestPart
     
+    //@Secured("ADMIN") //para que solo pueda dar de alta un producto quien tenga como rol admin
     @PostMapping( consumes = "multipart/form-data" )
     @Transactional //spring
-    public ResponseEntity<Map<String, Object>> insert
-    (@Valid @RequestPart(name = "producto") Producto producto,
-    BindingResult result,
-    @RequestPart(name = "file") MultipartFile file) throws IOException {
+    public ResponseEntity<Map<String, Object>> insert(
+        @Valid 
+        @RequestPart(name = "producto") Producto producto,
+        BindingResult result,
+        @RequestPart(name = "file", required = false) MultipartFile file) throws IOException {
 
         Map<String, Object> responseAsMap = new HashMap<>();
         ResponseEntity<Map<String, Object>> responseEntity = null;
@@ -189,7 +192,6 @@ public class ProductoController {
             //un for mejorado para recorrerlos creamos la coleccion, despues de los puntos estan
             //donde estan (result)y luego .getAllErrors, ahi ya nos pide que a la izq haya ObjectError
             for(ObjectError error : result.getAllErrors()) {
-
                 errorMessages.add(error.getDefaultMessage());
             }
 
@@ -198,10 +200,10 @@ public class ProductoController {
             responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.BAD_REQUEST);
             //Return para no salir del if y no guardar. Solo devolvemos mensaje error
             return responseEntity; 
-
         }
+
         //Si no hay errores, entonces se persiste el producto (se guarda mi hermano)
-        //Y PREVIAMENTE comprobamos si nos han enviado una imagen
+        //Y PREVIAMENTE comprobamos si nos han enviado una imagen o archivo
         if(!file.isEmpty()) {
             String fileCode = fileUploadUtil.saveFile(file.getOriginalFilename(), file); //recibe nombre del archivo y su contenido
             //Hemos lanzado una excepcion para arriba
@@ -209,11 +211,11 @@ public class ProductoController {
 
             //Devolver informacion respecto al file recibido
             FileUploadResponse fileUploadResponse = FileUploadResponse
-            .builder()
-            .fileName(fileCode + "-" + file.getOriginalFilename())
-            .downloadURI("/productos/downloadFile/" + fileCode + "-" + file.getOriginalFilename())
-            .size(file.getSize())
-            .build();
+                .builder()
+                .fileName(fileCode + "-" + file.getOriginalFilename())
+                .downloadURI("/productos/downloadFile/" + fileCode + "-" + file.getOriginalFilename())
+                .size(file.getSize())
+                .build();
 
             responseAsMap.put("info de la imagen", fileUploadResponse);
 
@@ -293,6 +295,9 @@ public class ProductoController {
     
             } else {
                 //No se ha actualizado el producto
+                 String mensaje = "El producto no se ha actualizado";
+                 resopnseAsMap.put("mensaje", mensaje);
+                 responseEntity = new ResponseEntity<Map<String, Object>>(resopnseAsMap, HttpStatus.NOT_ACCEPTABLE);
             }
             
         } catch (DataAccessException e) {
@@ -341,7 +346,7 @@ public class ProductoController {
     }
 
     /**
-     *  Implementa filedownnload end point API 
+     *  Implementa filedownload end point API 
      **/    
     //Tenemos qie inyectar arriba downloadFile
     @GetMapping("/downloadFile/{fileCode}") //esto es un ENDPoint

@@ -11,7 +11,9 @@ import org.springframework.data.jpa.repository.Query;
 import com.example.entities.Producto;
 
 public interface ProductoDao extends JpaRepository<Producto, Long>{
- 
+
+    
+
     /** 
      * Crearemos unas consultas personalizadas para cuando se busque un productoo,
      * se recupere la presentacion conjuntamente con dicho producto, y tambien para
@@ -31,8 +33,9 @@ public interface ProductoDao extends JpaRepository<Producto, Long>{
      * por algun criterio de ordenación, como por ejemplo por el nombre del producto, 
      * por la descripcion, etc.
      */
+
      
-     /**Para que nos de lista de productos venga ordenada por un criterio concreto*/
+     /**Para que nos de lista de productos y venga ordenada por un criterio concreto*/
      @Query(value = "select p from Producto p left join fetch p.presentacion")
      public List<Producto> findAll(Sort sort);
 
