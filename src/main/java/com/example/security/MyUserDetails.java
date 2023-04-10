@@ -31,7 +31,7 @@ public class MyUserDetails implements UserDetails{
         //Por cada rol que nos pasa por el stream con el map estamos creando un
         //SimpleGrantedAuthority
         authorities = Arrays
-                    .stream(Role.values().toString().split(","))
+                    .stream(user.getRole().toString().split(","))
                     .map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList()); 
 

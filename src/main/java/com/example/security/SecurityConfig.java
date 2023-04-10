@@ -38,19 +38,11 @@ public class SecurityConfig {
 
         return http.build();
     }
- 
-
-    // Estaba en el codigo de Victor, no se que hace jeje
-    // http.csrf().disable();
-    // http.authorizeHttpRequests()
-    //         .requestMatchers(UN_SECURED_URLs).permitAll().and()
-    //         .authorizeHttpRequests().requestMatchers(SECURED_URLs)
-    //         .hasAuthority("ADMIN").anyRequest()
-    //         .authenticated().and().httpBasic(withDefaults());    
+   
     
-    // Esto era para probar algo
-    // public static void main(String[] args) {
-    //     System.out.println(new SecurityConfig().passwordEncoder().encode("123456"));
-    // }
+    // Esto era para crear la contraseña encriptada
+    public static void main(String[] args) {
+        System.out.println(new SecurityConfig().passwordEncoder().encode("123456"));
+    }
 
 }
