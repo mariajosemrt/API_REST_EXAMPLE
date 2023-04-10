@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
@@ -38,6 +39,7 @@ public class Presentacion implements Serializable {
     @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST,
      mappedBy = "presentacion")
      @JsonIgnore
+     @JsonManagedReference
     private List<Producto> productos; 
 }
 

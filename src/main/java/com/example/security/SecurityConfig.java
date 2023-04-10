@@ -42,7 +42,7 @@ public class SecurityConfig {
     
     // Esto era para crear la contraseña encriptada
     public static void main(String[] args) {
-        System.out.println(new SecurityConfig().passwordEncoder().encode("123456"));
+        System.out.println(new SecurityConfig().passwordEncoder().encode("Temp2023$$"));
     }
 
 }

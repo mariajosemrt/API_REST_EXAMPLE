@@ -220,6 +220,9 @@ public class ProductoController {
 
             //Hay que crear el metodo que responda a la URL para recuperar la imagen del servidor
         }
+
+        //Aqui preguntale a salmita que te pase el codigo para que cada vez que se
+        //cree un producto no se cree una presentacion nueva todo el rato
         
         Producto productoDB = productoService.save(producto);
 
